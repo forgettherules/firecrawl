@@ -14,10 +14,10 @@ envs:
     value: "0.0.0.0"
   - key: REDIS_URL
     scope: RUN_AND_BUILD_TIME
-    value: ${firecrawl2.DATABASE_URL}
+    value: ${firecrawl-redis.DATABASE_URL}
   - key: REDIS_RATE_LIMIT_URL
     scope: RUN_AND_BUILD_TIME
-    value: ${firecrawl2.DATABASE_URL}
+    value: ${firecrawl-redis.DATABASE_URL}
   - key: USE_DB_AUTHENTICATION
     scope: RUN_AND_BUILD_TIME
     value: "true"
@@ -39,11 +39,17 @@ services:
     dockerfile_path: apps/api/Dockerfile
     github:
       branch: main
-      deploy_on_push: true
       repo: forgettherules/firecrawl
     http_port: 3002
     instance_count: 1
     instance_size_slug: basic-xxs
+    envs:
+      - key: REDIS_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${firecrawl-redis.DATABASE_URL}
+      - key: REDIS_RATE_LIMIT_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${firecrawl-redis.DATABASE_URL}
 
 workers:
   - name: playwright
@@ -66,8 +72,8 @@ workers:
     run_command: pnpm run workers
 
 databases:
-  - cluster_name: firecrawl2
+  - cluster_name: firecrawl-cluster
     engine: REDIS
-    name: firecrawl2
+    name: firecrawl-redis
     production: true
     version: "7" 
