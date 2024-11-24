@@ -1,0 +1,61 @@
+name: Build, Push and Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-push-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build API Image
+      - name: Build and push API
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6.5.0
+        with:
+          context: apps/api
+          push: true
+          tags: ghcr.io/${{ github.repository }}/api:latest
+
+      # Build Playwright Image  
+      - name: Build and push Playwright
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6.5.0
+        with:
+          context: apps/playwright-service
+          push: true
+          tags: ghcr.io/${{ github.repository }}/playwright:latest
+
+      # Deploy to DO App Platform
+      - name: Deploy to DO App Platform
+        if: github.event_name != 'pull_request'
+        uses: digitalocean/app_action/deploy@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      # Preview for PRs
+      - name: Deploy Preview
+        if: github.event_name == 'pull_request'
+        id: deploy
+        uses: digitalocean/app_action/deploy@v2
+        with:
+          deploy_pr_preview: "true"
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }} 
