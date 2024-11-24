@@ -1,0 +1,73 @@
+name: firecrawl
+envs:
+  - key: API_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: "test_sk_123456789"
+  - key: NUM_WORKERS_PER_QUEUE
+    scope: RUN_AND_BUILD_TIME
+    value: "8"
+  - key: PORT
+    scope: RUN_AND_BUILD_TIME
+    value: "3002"
+  - key: HOST
+    scope: RUN_AND_BUILD_TIME
+    value: "0.0.0.0"
+  - key: REDIS_URL
+    scope: RUN_AND_BUILD_TIME
+    value: ${firecrawl2.DATABASE_URL}
+  - key: REDIS_RATE_LIMIT_URL
+    scope: RUN_AND_BUILD_TIME
+    value: ${firecrawl2.DATABASE_URL}
+  - key: USE_DB_AUTHENTICATION
+    scope: RUN_AND_BUILD_TIME
+    value: "true"
+  - key: SUPABASE_URL
+    scope: RUN_AND_BUILD_TIME
+    value: "https://exmjcewmjunhqssbvwqy.supabase.co"
+  - key: SUPABASE_ANON_TOKEN
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: ${SUPABASE_ANON_TOKEN}
+  - key: SUPABASE_SERVICE_TOKEN
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: ${SUPABASE_SERVICE_TOKEN}
+
+services:
+  - name: api
+    source_dir: apps/api
+    dockerfile_path: apps/api/Dockerfile
+    github:
+      branch: main
+      deploy_on_push: true
+      repo: forgettherules/firecrawl
+    http_port: 3002
+    instance_count: 1
+    instance_size_slug: basic-xxs
+
+workers:
+  - name: playwright
+    source_dir: apps/playwright-service
+    dockerfile_path: apps/playwright-service/Dockerfile
+    github:
+      branch: main
+      repo: forgettherules/firecrawl
+    instance_size_slug: basic-xxs
+    instance_count: 1
+
+  - name: worker
+    source_dir: apps/api
+    dockerfile_path: apps/api/Dockerfile
+    github:
+      branch: main
+      repo: forgettherules/firecrawl
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    run_command: pnpm run workers
+
+databases:
+  - cluster_name: firecrawl2
+    engine: REDIS
+    name: firecrawl2
+    production: true
+    version: "7" 
